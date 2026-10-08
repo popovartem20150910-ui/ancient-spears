@@ -7,6 +7,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.UseAction;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.server.world.ServerWorld;
@@ -48,11 +49,7 @@ public class AncientSpears implements ModInitializer {
         });
     }
 
-    /**
-     * First playable spear mechanic: right-click to thrust toward a target
-     * within four blocks. Movement speed increases damage.
-     * Lunge enchantment and hold-to-charge animation will come later.
-     */
+    /** Hold right click to prepare a charge; release to strike in front of you. */
     public static class SpearItem extends Item {
         private final float baseDamage;
 
@@ -62,45 +59,62 @@ public class AncientSpears implements ModInitializer {
         }
 
         @Override
+        public int getMaxUseTime(ItemStack stack, LivingEntity user) {
+            return 72000;
+        }
+
+        @Override
+        public UseAction getUseAction(ItemStack stack) {
+            return UseAction.BOW;
+        }
+
+        @Override
         public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
             ItemStack stack = player.getStackInHand(hand);
             if (player.getItemCooldownManager().isCoolingDown(this)) {
                 return TypedActionResult.fail(stack);
             }
+            player.setCurrentHand(hand);
+            return TypedActionResult.consume(stack);
+        }
 
-            if (!world.isClient) {
-                Vec3d origin = player.getEyePos();
-                Vec3d facing = player.getRotationVec(1.0f).normalize();
-                LivingEntity closest = null;
-                double best = 4.5;
+        @Override
+        public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
+            if (!(user instanceof PlayerEntity player) || world.isClient) return;
+            int heldTicks = getMaxUseTime(stack, user) - remainingUseTicks;
+            if (heldTicks < 3) return;
 
-                for (LivingEntity target : world.getEntitiesByClass(LivingEntity.class,
-                        new Box(origin, origin.add(facing.multiply(4.5))).expand(1.5),
-                        entity -> entity != player && entity.isAlive())) {
-                    Vec3d toward = target.getBoundingBox().getCenter().subtract(origin);
-                    double forward = toward.dotProduct(facing);
-                    if (forward < 0 || forward > 4.5) continue;
-                    double sideways = toward.subtract(facing.multiply(forward)).length();
-                    if (sideways > target.getWidth() * 0.5 + 0.8) continue;
-                    if (!player.canSee(target)) continue;
-                    if (forward < best) {
-                        closest = target;
-                        best = forward;
-                    }
+            Vec3d origin = player.getEyePos();
+            Vec3d facing = player.getRotationVec(1.0f).normalize();
+            LivingEntity closest = null;
+            double best = 4.5;
+
+            for (LivingEntity target : world.getEntitiesByClass(LivingEntity.class,
+                    new Box(origin, origin.add(facing.multiply(4.5))).expand(1.5),
+                    entity -> entity != player && entity.isAlive())) {
+                Vec3d toward = target.getBoundingBox().getCenter().subtract(origin);
+                double forward = toward.dotProduct(facing);
+                if (forward < 0 || forward > 4.5) continue;
+                double sideways = toward.subtract(facing.multiply(forward)).length();
+                if (sideways > target.getWidth() * 0.5 + 0.8) continue;
+                if (!player.canSee(target)) continue;
+                if (forward < best) {
+                    closest = target;
+                    best = forward;
                 }
-
-                if (closest != null) {
-                    double speed = player.getVelocity().horizontalLength();
-                    float damage = baseDamage + (float)Math.min(8.0, speed * 12.0);
-                    closest.damage(world.getDamageSources().playerAttack(player), damage);
-                    stack.damage(1, player, net.minecraft.entity.EquipmentSlot.MAINHAND);
-                }
-
-                world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
-                        player.getSoundCategory(), 1.0f, 1.0f);
-                player.getItemCooldownManager().set(this, 12);
             }
-            return TypedActionResult.success(stack, world.isClient());
+
+            if (closest != null) {
+                double speed = player.getVelocity().horizontalLength();
+                float charge = Math.min(1.0f, heldTicks / 20.0f);
+                float damage = baseDamage + (float)Math.min(10.0, speed * 16.0) * (0.5f + charge);
+                closest.damage(world.getDamageSources().playerAttack(player), damage);
+                stack.damage(1, player, net.minecraft.entity.EquipmentSlot.MAINHAND);
+            }
+
+            world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
+                    player.getSoundCategory(), 1.0f, 0.85f);
+            player.getItemCooldownManager().set(this, 12);
         }
     }
 }
