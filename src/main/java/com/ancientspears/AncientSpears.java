@@ -65,7 +65,9 @@ public class AncientSpears implements ModInitializer {
 
         @Override
         public UseAction getUseAction(ItemStack stack) {
-            return UseAction.BOW;
+            // Do not play the bow-drawing animation. Vanilla still slows movement
+            // while the player is actively using an item.
+            return UseAction.NONE;
         }
 
         @Override
