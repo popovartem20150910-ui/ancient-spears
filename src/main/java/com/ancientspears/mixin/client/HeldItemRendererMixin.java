@@ -25,9 +25,9 @@ public abstract class HeldItemRendererMixin {
 
         // Gradually move the spear into a forward-pointing charge pose.
         float progress = Math.min(1.0f, (player.getItemUseTime() + tickDelta) / 8.0f);
-        matrices.translate(0.0f, -0.13f * progress, -0.42f * progress);
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-55.0f * progress));
+        matrices.translate(0.0f, 0.22f * progress, 0.12f * progress);
+        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(32.0f * progress));
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(
-                (hand == Hand.MAIN_HAND ? -1.0f : 1.0f) * 18.0f * progress));
+                (hand == Hand.MAIN_HAND ? -1.0f : 1.0f) * 10.0f * progress));
     }
 }
