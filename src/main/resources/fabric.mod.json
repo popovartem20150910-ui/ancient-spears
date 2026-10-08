@@ -4,8 +4,22 @@
   "version": "${version}",
   "name": "Ancient Spears",
   "description": "Spear weapons for Minecraft 1.21.1 Fabric. Designed to coexist with Relic Hunt.",
-  "authors": ["Ancient Spears contributors"],
+  "authors": [
+    "Ancient Spears contributors"
+  ],
   "environment": "*",
-  "entrypoints": {"main": ["com.ancientspears.AncientSpears"]},
-  "depends": {"fabricloader": ">=0.16.0", "minecraft": "~1.21.1", "java": ">=21", "fabric-api": "*"}
+  "entrypoints": {
+    "main": [
+      "com.ancientspears.AncientSpears"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "mixins": [
+    "ancient_spears.client.mixins.json"
+  ]
 }
